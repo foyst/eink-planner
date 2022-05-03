@@ -1,0 +1,14 @@
+attrs==21.4.0
+certifi==2021.10.8
+charset-normalizer==2.0.12
+configparser==5.2.0
+distlib==0.3.4
+filelock==3.6.0
+idna==3.3
+Pillow==9.1.0
+platformdirs==2.5.2
+requests==2.27.1
+six==1.16.0
+todoist-api-python==1.1.1
+urllib3==1.26.9
+virtualenv==20.14.1
