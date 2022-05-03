@@ -11,6 +11,7 @@ import json
 import datetime
 from todoist_api_python.api import TodoistAPI
 import configparser
+import calendar
 
 EPD_WIDTH       = 480
 EPD_HEIGHT      = 800
@@ -34,9 +35,9 @@ def main():
 
         # All fonts used in frames
         global font_cal; font_cal = ImageFont.truetype('fonts/FreeMonoBold.ttf', 16)
-        global font_day; font_day = ImageFont.truetype('fonts/Roboto-Black.ttf', 110)
+        global font_day; font_day = ImageFont.truetype('fonts/Roboto-Black.ttf', 72)
         global font_weather; font_weather = ImageFont.truetype('fonts/Roboto-Black.ttf', 20)
-        global font_day_str; font_day_str = ImageFont.truetype('fonts/Roboto-Light.ttf', 35)
+        global font_day_str; font_day_str = ImageFont.truetype('fonts/Roboto-Light.ttf', 25)
         global font_month_str; font_month_str = ImageFont.truetype('fonts/Roboto-Light.ttf', 25)
         global font_weather_icons; font_weather_icons = ImageFont.truetype('fonts/meteocons-webfont.ttf', 45)
         global font_tasks_list_title; font_tasks_list_title = ImageFont.truetype('fonts/Roboto-Light.ttf', 30)
@@ -84,17 +85,39 @@ def refresh_Screen():
     global epd
     global todo_response
     global Debug_Mode
-    global weather_response
 
     # Create clean black frames with any existing Bitmaps
     image_black = Image.new('1', (EPD_WIDTH, EPD_HEIGHT), 255)
     draw_black = ImageDraw.Draw(image_black)
+
+    # Calendar strings to be displayed
+    day_str = time.strftime("%A")
+    day_number = time.strftime("%d")
+    month_str = time.strftime("%B") + ' ' + time.strftime("%Y")
+    update_moment = time.strftime("%I") + ':' + time.strftime("%M") + ' ' + time.strftime("%p")
+
+    # This section is to center the calendar text in the middle
+    w_day_str,h_day_str = font_day_str.getsize(day_str)
+    x_day_str = (cal_width / 2) - (w_day_str / 2)
+
+    # The settings for the Calenday today number in the middle
+    w_day_num,h_day_num = font_day.getsize(day_number)
+    x_day_num = (cal_width / 2) - (w_day_num / 2)
+
+    # The settings for the month string in the middle
+    w_month_str,h_month_str = font_month_str.getsize(month_str)
+    x_month_str = (cal_width / 2) - (w_month_str / 2)
+
+    draw_black.rectangle((0,0,EPD_WIDTH, 70), fill = 0) # Calender area rectangle
+    draw_black.text((90,5),day_str, font = font_day_str, fill = 255) # Day string calender text
+    draw_black.text((3,-5),day_number, font = font_day, fill = 255) # Day number string text
+    draw_black.text((92,37),month_str, font = font_month_str, fill = 255) # Month string text
     
     update_moment = time.strftime("%I") + ':' + time.strftime("%M") + ' ' + time.strftime("%p")
     draw_black.line((250,320,640,320), fill = 0) # Footer for additional items
     draw_black.text((585,370),update_moment,font = font_update_moment, fill = 255) # The update moment in Pooch
 
-    line_location = 20
+    line_location = 40
     for my_task in todo_response:
         item = str(my_task.content)
         priority = str(my_task.priority)
@@ -113,10 +136,10 @@ def refresh_Screen():
         else:
             temp_draw = draw_black
 
-        temp_draw.text((2, line_start + line_location), item, font = font_tasks_list, fill = 0) # Print task strings
-        temp_draw.chord((247.5, line_start + 2 + line_location, 257.5, line_start + 12 + line_location), 0, 360, fill = 0) # Draw circle for task priority
-        temp_draw.text((250,line_start + 2 + line_location), priority, font = font_tasks_priority, fill = 255) # Print task priority string
-        temp_draw.line((250,line_start + 18 + line_location, 640, line_start + 18 + line_location), fill = 0) # Draw the line below the task
+        temp_draw.text((20, line_start + line_location), item, font = font_tasks_list, fill = 0) # Print task strings
+        temp_draw.chord((3.5, line_start + 2 + line_location, 13.5, line_start + 12 + line_location), 0, 360, fill = 0) # Draw circle for task priority
+        temp_draw.text((6,line_start + 2 + line_location), priority, font = font_tasks_priority, fill = 255) # Print task priority string
+        temp_draw.line((3,line_start + 18 + line_location, 474, line_start + 18 + line_location), fill = 0) # Draw the line below the task
         if my_task.due != None:
             temp_draw.rectangle((595,line_start + 2 + line_location, 640, line_start + 18 + line_location), fill = 0) # Draw rectangle for the due date
             temp_draw.text((602.5, line_start + 3.5 + line_location),str(my_task.due.string), font = font_tasks_due_date, fill = 255) # Print the due date of task
