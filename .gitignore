@@ -130,3 +130,5 @@ dmypy.json
 
 Black_Frame.png
 conf.ini
+token.json
+client_secret.json

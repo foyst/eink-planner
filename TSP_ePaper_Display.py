@@ -1,17 +1,24 @@
 # The Signal Path - DataPad ePaper Display
 # Shahriar Shahramian / November 2018
 
-# import epd7in5_V2
+import epd7in5_V2
+import os
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 import time
+from httplib2 import Credentials
 import requests
 import json
 import datetime
 from todoist_api_python.api import TodoistAPI
 import configparser
-import calendar
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+from googleapiclient.errors import HttpError
+from dateutil import parser
 
 EPD_WIDTH       = 480
 EPD_HEIGHT      = 800
@@ -19,12 +26,11 @@ EPD_HEIGHT      = 800
 config = configparser.ConfigParser()
 config.read('conf.ini')
 TODOIST_TOKEN = config['Todoist']['APIToken']
-DEBUG_MODE = 1
 
 def main():
-        global Debug_Mode; Debug_Mode = 1
+        global Debug_Mode; Debug_Mode = 0
         global do_screen_update; do_screen_update = 1
-        # global epd; epd = epd7in5_V2.EPD()
+        global epd; epd = epd7in5_V2.EPD()
         if Debug_Mode == 0:
             epd.init()
         else:
@@ -36,7 +42,7 @@ def main():
         # All fonts used in frames
         global font_cal; font_cal = ImageFont.truetype('fonts/FreeMonoBold.ttf', 16)
         global font_day; font_day = ImageFont.truetype('fonts/Roboto-Black.ttf', 72)
-        global font_weather; font_weather = ImageFont.truetype('fonts/Roboto-Black.ttf', 20)
+        global font_section_header; font_section_header = ImageFont.truetype('fonts/Roboto-Black.ttf', 20)
         global font_day_str; font_day_str = ImageFont.truetype('fonts/Roboto-Light.ttf', 25)
         global font_month_str; font_month_str = ImageFont.truetype('fonts/Roboto-Light.ttf', 25)
         global font_weather_icons; font_weather_icons = ImageFont.truetype('fonts/meteocons-webfont.ttf', 45)
@@ -50,17 +56,24 @@ def main():
         global refresh_time; refresh_time = 900
         start_time = time.time() + refresh_time
 
-        # while True:
-        query_todo_list()
-        if (do_screen_update == 1):
-            do_screen_update = 0
-            refresh_Screen()
-            start_time = time.time() + refresh_time
-        elif (time.time() - start_time) > 0:
-            print('-= General Refresh =-')
-            refresh_Screen()
-            start_time = time.time() + refresh_time
-            # time.sleep(todo_wait)
+        try:
+            while True:
+                query_todo_list()
+                query_google_calendar()
+                if (do_screen_update == 1):
+                    do_screen_update = 0
+                    refresh_Screen()
+                    start_time = time.time() + refresh_time
+                elif (time.time() - start_time) > 0:
+                    print('-= General Refresh =-')
+                    refresh_Screen()
+                    start_time = time.time() + refresh_time
+                time.sleep(todo_wait)
+        except KeyboardInterrupt:
+            print('-= Exiting... =-')
+            if Debug_Mode == 0:
+                epd.sleep()
+        
 
 def query_todo_list():
     global todo_response
@@ -81,10 +94,49 @@ def query_todo_list():
         todo_response = new_todo_response
         return True
 
+SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
+
+def query_google_calendar():
+    global calendar_response
+    global do_screen_update
+    creds = None
+    # The file token.json stores the user's access and refresh tokens, and is
+    # created automatically when the authorization flow completes for the first
+    # time.
+    if os.path.exists('token.json'):
+        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+    # If there are no (valid) credentials available, let the user log in.
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(
+                'client_secret.json', SCOPES)
+            creds = flow.run_local_server(port=0, open_browser=False)
+        # Save the credentials for the next run
+        with open('token.json', 'w') as token:
+            token.write(creds.to_json())
+
+    service = build("calendar", "v3", credentials=creds)
+
+    now = datetime.datetime.utcnow().isoformat() + 'Z'
+    today_end = datetime.datetime.combine(datetime.datetime.utcnow().date() + datetime.timedelta(1), datetime.datetime.min.time()).isoformat() + 'Z'
+
+    events = service.events().list(calendarId='primary', timeMin=now, timeMax=today_end,
+                                        maxResults=10, singleEvents=True,
+                                        orderBy='startTime', maxAttendees=1).execute()
+    
+    do_screen_update = 1
+    calendar_response = events
+    return True
+
 def refresh_Screen():
     global epd
     global todo_response
+    global calendar_response
     global Debug_Mode
+
+    text_left_indent = 3
 
     # Create clean black frames with any existing Bitmaps
     image_black = Image.new('1', (EPD_WIDTH, EPD_HEIGHT), 255)
@@ -110,15 +162,17 @@ def refresh_Screen():
 
     draw_black.rectangle((0,0,EPD_WIDTH, 70), fill = 0) # Calender area rectangle
     draw_black.text((90,5),day_str, font = font_day_str, fill = 255) # Day string calender text
-    draw_black.text((3,-5),day_number, font = font_day, fill = 255) # Day number string text
+    draw_black.text((text_left_indent,-5),day_number, font = font_day, fill = 255) # Day number string text
     draw_black.text((92,37),month_str, font = font_month_str, fill = 255) # Month string text
     
     update_moment = time.strftime("%I") + ':' + time.strftime("%M") + ' ' + time.strftime("%p")
-    draw_black.line((250,320,640,320), fill = 0) # Footer for additional items
     draw_black.text((585,370),update_moment,font = font_update_moment, fill = 255) # The update moment in Pooch
 
-    line_location = 40
-    for my_task in todo_response:
+    draw_black.rectangle((0,70,EPD_WIDTH, 100), fill = 0) # Calender header rectangle
+    draw_black.text((text_left_indent, 74), "Prioritised Tasks", font = font_section_header, fill = 255)
+
+    line_location = 70
+    for my_task in todo_response[0:10]:
         item = str(my_task.content)
         priority = str(my_task.priority)
 
@@ -149,14 +203,19 @@ def refresh_Screen():
         else:
             draw_black = temp_draw
         line_location += 26
-        if (line_start + line_location + 28 >= 320):
+    
+    draw_black.rectangle((0,400,EPD_WIDTH, 430), fill = 0) # Calender header rectangle
+    draw_black.text((text_left_indent, 404), "Today's Calendar", font = font_section_header, fill = 255)
+    line_location = 400
+    for event in calendar_response.get('items', []):
+        start = event['start'].get('dateTime', event['start'].get('date'))
+        start_time = parser.parse(start).time().strftime("%H:%M")
+        summary = event['summary']
 
-            # The placement for extra tasks not shown
-            notshown_tasks = '... & ' + str(len(todo_response) - 9) +  ' more ...'
-            w_notshown_tasks,h_notshown_tasks = font_tasks_due_date.getsize(notshown_tasks)
-            x_nowshown_tasks = 550 + ((640 - 550) / 2) - (w_notshown_tasks / 2)
-            draw_black.text((x_nowshown_tasks, line_start + 3.5 + line_location), notshown_tasks,font = font_tasks_due_date, fill = 255) # Print identifier that there are tasks not shown
-            break
+        draw_black.text((70, line_start + line_location), summary, font = font_tasks_list, fill = 0) # Print event summary
+        draw_black.text((20, line_start + line_location), start_time, font = font_tasks_list, fill = 0) # Print event start date
+        line_location += 26
+        
 
     if Debug_Mode == 1:
         print('-= Viewing ePaper Frames... =-')
@@ -164,7 +223,7 @@ def refresh_Screen():
         print('-= ...Done =-')
     else:
         print('-= Updating ePaper... =-')
-        epd.display(epd.get_frame_buffer(image_black))
+        epd.display(epd.getbuffer(image_black))
         print('-= ...Done =-')
 if __name__ == '__main__':
     main()
