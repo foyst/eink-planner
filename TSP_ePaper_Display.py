@@ -36,6 +36,7 @@ def main():
         else:
             print('-= Debug Mode =-')
         global todo_response; todo_response = ''
+        global calendar_response; calendar_response = ''
         global cal_width; cal_width = 240
         global line_start; line_start = 48
 
@@ -68,6 +69,8 @@ def main():
                     print('-= General Refresh =-')
                     refresh_Screen()
                     start_time = time.time() + refresh_time
+                else:
+                    print('-= No changes detected, not refreshing screen =-')
                 time.sleep(todo_wait)
         except KeyboardInterrupt:
             print('-= Exiting... =-')
@@ -126,8 +129,10 @@ def query_google_calendar():
                                         maxResults=10, singleEvents=True,
                                         orderBy='startTime', maxAttendees=1).execute()
     
-    do_screen_update = 1
-    calendar_response = events
+    if events != calendar_response:
+        print('-= Calendar Change Detected =-')
+        do_screen_update = 1
+        calendar_response = events
     return True
 
 def refresh_Screen():
@@ -207,14 +212,18 @@ def refresh_Screen():
     draw_black.rectangle((0,400,EPD_WIDTH, 430), fill = 0) # Calender header rectangle
     draw_black.text((text_left_indent, 404), "Today's Calendar", font = font_section_header, fill = 255)
     line_location = 400
-    for event in calendar_response.get('items', []):
-        start = event['start'].get('dateTime', event['start'].get('date'))
-        start_time = parser.parse(start).time().strftime("%H:%M")
-        summary = event['summary']
+    calendar_events = calendar_response.get('items', []) 
+    if len(calendar_events) == 0:
+        draw_black.text((70, line_start + line_location), "No more events today", font = font_tasks_list, fill = 0) # Print event summary
+    else:
+        for event in calendar_events:
+            start = event['start'].get('dateTime', event['start'].get('date'))
+            start_time = parser.parse(start).time().strftime("%H:%M")
+            summary = event['summary']
 
-        draw_black.text((70, line_start + line_location), summary, font = font_tasks_list, fill = 0) # Print event summary
-        draw_black.text((20, line_start + line_location), start_time, font = font_tasks_list, fill = 0) # Print event start date
-        line_location += 26
+            draw_black.text((70, line_start + line_location), summary, font = font_tasks_list, fill = 0) # Print event summary
+            draw_black.text((20, line_start + line_location), start_time, font = font_tasks_list, fill = 0) # Print event start date
+            line_location += 26
         
 
     if Debug_Mode == 1:
@@ -224,6 +233,7 @@ def refresh_Screen():
     else:
         print('-= Updating ePaper... =-')
         epd.display(epd.getbuffer(image_black))
+        epd.sleep()
         print('-= ...Done =-')
 if __name__ == '__main__':
     main()
