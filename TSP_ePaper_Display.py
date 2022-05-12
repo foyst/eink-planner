@@ -1,7 +1,6 @@
 # The Signal Path - DataPad ePaper Display
 # Shahriar Shahramian / November 2018
 
-import epd7in5_V2
 import os
 from PIL import Image
 from PIL import ImageDraw
@@ -28,10 +27,12 @@ config.read('conf.ini')
 TODOIST_TOKEN = config['Todoist']['APIToken']
 
 def main():
-        global Debug_Mode; Debug_Mode = 0
+        global Debug_Mode; Debug_Mode = 1
         global do_screen_update; do_screen_update = 1
-        global epd; epd = epd7in5_V2.EPD()
+        global epd
         if Debug_Mode == 0:
+            import epd7in5_V2
+            epd = epd7in5_V2.EPD()
             epd.init()
         else:
             print('-= Debug Mode =-')
@@ -48,10 +49,12 @@ def main():
         global font_month_str; font_month_str = ImageFont.truetype('fonts/Roboto-Light.ttf', 25)
         global font_weather_icons; font_weather_icons = ImageFont.truetype('fonts/meteocons-webfont.ttf', 45)
         global font_tasks_list_title; font_tasks_list_title = ImageFont.truetype('fonts/Roboto-Light.ttf', 30)
-        global font_tasks_list; font_tasks_list = ImageFont.truetype('fonts/tahoma.ttf', 12)
+        global font_tasks_list; font_tasks_list = ImageFont.truetype('fonts/tahoma.ttf', 14)
         global font_tasks_due_date; font_tasks_due_date = ImageFont.truetype('fonts/tahoma.ttf', 11)
-        global font_tasks_priority; font_tasks_priority = ImageFont.truetype('fonts/tahoma.ttf', 9)
+        global font_tasks_priority; font_tasks_priority = ImageFont.truetype('fonts/tahoma.ttf', 11)
         global font_update_moment; font_update_moment = ImageFont.truetype('fonts/tahoma.ttf', 9)
+
+        global font_calendar_time; font_calendar_time = ImageFont.truetype(font='fonts/tahoma.ttf', size=18)
 
         global todo_wait; todo_wait = 300
         global refresh_time; refresh_time = 900
@@ -153,18 +156,6 @@ def refresh_Screen():
     month_str = time.strftime("%B") + ' ' + time.strftime("%Y")
     update_moment = time.strftime("%I") + ':' + time.strftime("%M") + ' ' + time.strftime("%p")
 
-    # This section is to center the calendar text in the middle
-    w_day_str,h_day_str = font_day_str.getsize(day_str)
-    x_day_str = (cal_width / 2) - (w_day_str / 2)
-
-    # The settings for the Calenday today number in the middle
-    w_day_num,h_day_num = font_day.getsize(day_number)
-    x_day_num = (cal_width / 2) - (w_day_num / 2)
-
-    # The settings for the month string in the middle
-    w_month_str,h_month_str = font_month_str.getsize(month_str)
-    x_month_str = (cal_width / 2) - (w_month_str / 2)
-
     draw_black.rectangle((0,0,EPD_WIDTH, 70), fill = 0) # Calender area rectangle
     draw_black.text((90,5),day_str, font = font_day_str, fill = 255) # Day string calender text
     draw_black.text((text_left_indent,-5),day_number, font = font_day, fill = 255) # Day number string text
@@ -196,9 +187,9 @@ def refresh_Screen():
             temp_draw = draw_black
 
         temp_draw.text((20, line_start + line_location), item, font = font_tasks_list, fill = 0) # Print task strings
-        temp_draw.chord((3.5, line_start + 2 + line_location, 13.5, line_start + 12 + line_location), 0, 360, fill = 0) # Draw circle for task priority
-        temp_draw.text((6,line_start + 2 + line_location), priority, font = font_tasks_priority, fill = 255) # Print task priority string
-        temp_draw.line((3,line_start + 18 + line_location, 474, line_start + 18 + line_location), fill = 0) # Draw the line below the task
+        temp_draw.chord((3.5, line_start + 2 + line_location, 15.5, line_start + 14 + line_location), 0, 360, fill = 0) # Draw circle for task priority
+        temp_draw.text((7,line_start + 2 + line_location), priority, font = font_tasks_priority, fill = 255) # Print task priority string
+        temp_draw.line((3,line_start + 20 + line_location, 474, line_start + 20 + line_location), fill = 0) # Draw the line below the task
         if my_task.due != None:
             temp_draw.rectangle((595,line_start + 2 + line_location, 640, line_start + 18 + line_location), fill = 0) # Draw rectangle for the due date
             temp_draw.text((602.5, line_start + 3.5 + line_location),str(my_task.due.string), font = font_tasks_due_date, fill = 255) # Print the due date of task
@@ -221,8 +212,8 @@ def refresh_Screen():
             start_time = parser.parse(start).time().strftime("%H:%M")
             summary = event['summary']
 
-            draw_black.text((70, line_start + line_location), summary, font = font_tasks_list, fill = 0) # Print event summary
-            draw_black.text((20, line_start + line_location), start_time, font = font_tasks_list, fill = 0) # Print event start date
+            draw_black.text((10, line_start + line_location), start_time, font = font_calendar_time, fill = 0) # Print event start date
+            draw_black.text((70, line_start + line_location + 6), summary, font = font_tasks_list, fill = 0) # Print event summary
             line_location += 26
         
 
