@@ -27,13 +27,12 @@ config.read('conf.ini')
 TODOIST_TOKEN = config['Todoist']['APIToken']
 
 def main():
-        global Debug_Mode; Debug_Mode = 1
+        global Debug_Mode; Debug_Mode = int(config['General']['DebugMode'])
         global do_screen_update; do_screen_update = 1
         global epd
         if Debug_Mode == 0:
             import epd7in5_V2
             epd = epd7in5_V2.EPD()
-            epd.init()
         else:
             print('-= Debug Mode =-')
         global todo_response; todo_response = ''
@@ -223,6 +222,7 @@ def refresh_Screen():
         print('-= ...Done =-')
     else:
         print('-= Updating ePaper... =-')
+        epd.init()
         epd.display(epd.getbuffer(image_black))
         epd.sleep()
         print('-= ...Done =-')
