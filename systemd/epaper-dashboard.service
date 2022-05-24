@@ -1,0 +1,11 @@
+[Unit]
+Description=Eink Dashboard
+Conflicts=motivational-poster.service
+
+[Service]
+User=ben
+WorkingDirectory=/home/ben/epaper-dashboard
+ExecStart=python3 TSP_ePaper_Display.py
+
+[Install]
+WantedBy=multi-user.target

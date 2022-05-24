@@ -1,0 +1,10 @@
+[Unit]
+Description=Motivational Poster
+
+[Service]
+User=ben
+WorkingDirectory=/home/ben/epaper-dashboard
+ExecStart=python3 motivational_poster.py
+
+[Install]
+WantedBy=multi-user.target

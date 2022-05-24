@@ -1,0 +1,62 @@
+---
+- name: Provision eInk Dashboard
+  gather_facts: true
+  hosts: all
+  remote_user: ben
+
+  tasks:
+  - name: Install linux dependencies
+    become: yes
+    apt:
+      pkg:
+      - python3-pip
+      - python3-pil
+      - python3-numpy
+      update_cache: yes      
+
+  - name: Install eink pip dependencies
+    pip:
+      name: "{{ item }}"
+    loop:
+    - RPi.GPIO
+    - spidev
+
+  - name: Copy project requirements.txt
+    copy:
+      src: ../requirements.txt
+      dst: /home/ben/epaper-dashboard/requirements.txt
+
+  - name: Install project pip dependencies
+    pip:
+      requirements: /home/ben/epaper-dashboard/requirements.txt
+
+  - name: Copy Python code to Pi
+    synchronize:
+      src: ../..
+      dest: /home/ben
+
+  - name: Copy systemd services
+    become: yes
+    copy:
+        src: ../systemd/
+        dest: /etc/systemd/system
+
+  - name: start systemd services
+    become: yes
+    ansible.builtin.systemd:
+      enabled: yes
+      state: restarted
+      name: "{{ item }}"
+      daemon_reload: yes
+    loop:
+    - epaper-dashboard
+    - motivational-poster.timer
+  
+  - name: Add cron task to shutdown Pi at 5:10pm daily
+    become: yes
+    ansible.builtin.cron:
+      name: "daily shutdown"
+      user: root
+      minute: "10"
+      hour: "17"
+      job: "shutdown now"

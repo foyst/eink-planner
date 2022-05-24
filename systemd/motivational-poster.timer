@@ -1,0 +1,4 @@
+[Timer]
+Unit=motivational-poster
+OnCalendar=*-*-* 17:00:00
+Persistent=true
