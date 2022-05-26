@@ -35,6 +35,14 @@
       src: ../..
       dest: /home/ben
 
+  - name: Copy conf.ini
+    ansible.builtin.template:
+      src: templates/conf.ini.j2
+      dest: /home/ben/epaper-dashboard/conf.ini
+      owner: ben
+      group: ben
+      mode: '0644'
+
   - name: Copy systemd services
     become: yes
     copy:
