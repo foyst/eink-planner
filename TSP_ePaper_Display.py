@@ -61,7 +61,7 @@ def main():
         global font_tasks_list; font_tasks_list = ImageFont.truetype('fonts/tahoma.ttf', 14)
         global font_tasks_due_date; font_tasks_due_date = ImageFont.truetype('fonts/tahoma.ttf', 11)
         global font_tasks_priority; font_tasks_priority = ImageFont.truetype('fonts/tahoma.ttf', 11)
-        global font_update_moment; font_update_moment = ImageFont.truetype('fonts/tahoma.ttf', 9)
+        global font_update_moment; font_update_moment = ImageFont.truetype('fonts/tahoma.ttf', 14)
 
         global font_calendar_time; font_calendar_time = ImageFont.truetype(font='fonts/tahoma.ttf', size=18)
 
@@ -167,8 +167,8 @@ def refresh_screen(calendar_result):
     draw_black.text((text_left_indent,-5),day_number, font = font_day, fill = 255) # Day number string text
     draw_black.text((92,37),month_str, font = font_month_str, fill = 255) # Month string text
     
-    update_moment = time.strftime("%I") + ':' + time.strftime("%M") + ' ' + time.strftime("%p")
-    draw_black.text((585,370),update_moment,font = font_update_moment, fill = 255) # The update moment in Pooch
+    update_moment = "Last updated: " + time.strftime("%I") + ':' + time.strftime("%M") + ' ' + time.strftime("%p")
+    draw_black.text((325,5),update_moment,font = font_update_moment, fill = 255)
 
     draw_black.rectangle((0,70,EPD_WIDTH, 100), fill = 0) # Calender header rectangle
     draw_black.text((text_left_indent, 74), "Prioritised Tasks", font = font_section_header, fill = 255)
