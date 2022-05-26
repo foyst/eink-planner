@@ -1,6 +1,7 @@
 # The Signal Path - DataPad ePaper Display
 # Shahriar Shahramian / November 2018
 
+from logging.handlers import RotatingFileHandler
 import os
 from PIL import Image
 from PIL import ImageDraw
@@ -18,6 +19,7 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from dateutil import parser
+import logging
 
 EPD_WIDTH       = 480
 EPD_HEIGHT      = 800
@@ -26,7 +28,15 @@ config = configparser.ConfigParser()
 config.read('conf.ini')
 TODOIST_TOKEN = config['Todoist']['APIToken']
 
+logging.basicConfig(level=logging.INFO)
+handler = RotatingFileHandler("epaper-dashboard.log", maxBytes=104857600, backupCount=10)
+handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+logging.getLogger('').addHandler(handler)
+
+logger = logging.getLogger(__name__)
+
 def main():
+        logger.info("epaper-dashboard starting up...")
         global Debug_Mode; Debug_Mode = int(config['General']['DebugMode'])
         global do_screen_update; do_screen_update = 1
         global epd
@@ -34,9 +44,9 @@ def main():
             import epd7in5_V2
             epd = epd7in5_V2.EPD()
         else:
-            print('-= Debug Mode =-')
+            logger.info('-= Debug Mode =-')
         global todo_response; todo_response = ''
-        global calendar_response; calendar_response = ''
+        global calendar_result; calendar_result = ''
         global cal_width; cal_width = 240
         global line_start; line_start = 48
 
@@ -57,25 +67,19 @@ def main():
 
         global todo_wait; todo_wait = 300
         global refresh_time; refresh_time = 900
-        start_time = time.time() + refresh_time
 
         try:
             while True:
                 query_todo_list()
-                query_google_calendar()
+                calendar_result = query_google_calendar()
                 if (do_screen_update == 1):
                     do_screen_update = 0
-                    refresh_Screen()
-                    start_time = time.time() + refresh_time
-                elif (time.time() - start_time) > 0:
-                    print('-= General Refresh =-')
-                    refresh_Screen()
-                    start_time = time.time() + refresh_time
+                    refresh_screen(calendar_result)
                 else:
-                    print('-= No changes detected, not refreshing screen =-')
+                    logger.info('-= No changes detected, not refreshing screen =-')
                 time.sleep(todo_wait)
         except KeyboardInterrupt:
-            print('-= Exiting... =-')
+            logger.info('-= Exiting... =-')
             if Debug_Mode == 0:
                 epd.sleep()
         
@@ -83,18 +87,18 @@ def main():
 def query_todo_list():
     global todo_response
     global do_screen_update
-    print('-= Ping ToDo API =-')
+    logger.info('-= Ping ToDo API =-')
     while True:
         try:
             api = TodoistAPI(TODOIST_TOKEN)
             new_todo_response = api.get_tasks()
             break
         except Exception as error:
-            print('-= ToDo API Error - Will Try Again =-')
-            print(error)
+            logger.error('-= ToDo API Error - Will Try Again =-')
+            logger.error(error)
             time.sleep(refresh_time)
     if ((new_todo_response) != (todo_response)):
-        print('-= Task List Change Detected =-')
+        logger.info('-= Task List Change Detected =-')
         do_screen_update = 1
         todo_response = new_todo_response
         return True
@@ -102,7 +106,7 @@ def query_todo_list():
 SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
 def query_google_calendar():
-    global calendar_response
+    global calendar_result
     global do_screen_update
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
@@ -111,36 +115,39 @@ def query_google_calendar():
     if os.path.exists('token.json'):
         creds = Credentials.from_authorized_user_file('token.json', SCOPES)
     # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'client_secret.json', SCOPES)
-            creds = flow.run_local_server(port=0, open_browser=False)
-        # Save the credentials for the next run
-        with open('token.json', 'w') as token:
-            token.write(creds.to_json())
-
-    service = build("calendar", "v3", credentials=creds)
-
-    now = datetime.datetime.utcnow().isoformat() + 'Z'
-    today_end = datetime.datetime.combine(datetime.datetime.utcnow().date() + datetime.timedelta(1), datetime.datetime.min.time()).isoformat() + 'Z'
-
-    events = service.events().list(calendarId='primary', timeMin=now, timeMax=today_end,
-                                        maxResults=10, singleEvents=True,
-                                        orderBy='startTime', maxAttendees=1).execute()
     
-    if events != calendar_response:
-        print('-= Calendar Change Detected =-')
-        do_screen_update = 1
-        calendar_response = events
-    return True
+    try:
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'client_secret.json', SCOPES)
+                creds = flow.run_local_server(port=0, open_browser=False)
+            # Save the credentials for the next run
+            with open('token.json', 'w') as token:
+                token.write(creds.to_json())
 
-def refresh_Screen():
+        service = build("calendar", "v3", credentials=creds)
+
+        now = datetime.datetime.utcnow().isoformat() + 'Z'
+        today_end = datetime.datetime.combine(datetime.datetime.utcnow().date() + datetime.timedelta(1), datetime.datetime.min.time()).isoformat() + 'Z'
+
+        events = service.events().list(calendarId='primary', timeMin=now, #timeMax=today_end,
+                                            maxResults=10, singleEvents=True,
+                                            orderBy='startTime', maxAttendees=1).execute()
+    except BaseException as err:
+        return ({}, err)
+    
+    if events != calendar_result:
+        logger.info('-= Calendar Change Detected =-')
+        do_screen_update = 1
+        calendar_result = events
+    return (events, '')
+
+def refresh_screen(calendar_result):
     global epd
     global todo_response
-    global calendar_response
     global Debug_Mode
 
     text_left_indent = 3
@@ -202,29 +209,38 @@ def refresh_Screen():
     draw_black.rectangle((0,400,EPD_WIDTH, 430), fill = 0) # Calender header rectangle
     draw_black.text((text_left_indent, 404), "Today's Calendar", font = font_section_header, fill = 255)
     line_location = 400
-    calendar_events = calendar_response.get('items', []) 
-    if len(calendar_events) == 0:
-        draw_black.text((70, line_start + line_location), "No more events today", font = font_tasks_list, fill = 0) # Print event summary
-    else:
-        for event in calendar_events:
-            start = event['start'].get('dateTime', event['start'].get('date'))
-            start_time = parser.parse(start).time().strftime("%H:%M")
-            summary = event['summary']
 
-            draw_black.text((10, line_start + line_location), start_time, font = font_calendar_time, fill = 0) # Print event start date
-            draw_black.text((70, line_start + line_location + 6), summary, font = font_tasks_list, fill = 0) # Print event summary
-            line_location += 26
+    calendar_response, calendar_error = calendar_result
+
+    if (calendar_error):
+        logger.error(calendar_error)
+        error_icon = Image.open('error_icon.png')
+        image_black.paste(error_icon, (10, line_start + line_location))
+        draw_black.text((100, line_start + line_location), "Error retrieving calendar: \n" + str(calendar_error), font = font_tasks_list, fill = 0) # Print event summary
+    else:
+        calendar_events = calendar_response.get('items', []) 
+        if len(calendar_events) == 0:
+            draw_black.text((70, line_start + line_location), "No more events today", font = font_tasks_list, fill = 0) # Print event summary
+        else:
+            for event in calendar_events:
+                start = event['start'].get('dateTime', event['start'].get('date'))
+                start_time = parser.parse(start).time().strftime("%H:%M")
+                summary = event['summary']
+
+                draw_black.text((10, line_start + line_location), start_time, font = font_calendar_time, fill = 0) # Print event start date
+                draw_black.text((70, line_start + line_location + 6), summary, font = font_tasks_list, fill = 0) # Print event summary
+                line_location += 26
         
 
     if Debug_Mode == 1:
-        print('-= Viewing ePaper Frames... =-')
+        logger.info('-= Viewing ePaper Frames... =-')
         image_black.save("Black_Frame.png")
-        print('-= ...Done =-')
+        logger.info('-= ...Done =-')
     else:
-        print('-= Updating ePaper... =-')
+        logger.info('-= Updating ePaper... =-')
         epd.init()
         epd.display(epd.getbuffer(image_black))
         epd.sleep()
-        print('-= ...Done =-')
+        logger.info('-= ...Done =-')
 if __name__ == '__main__':
     main()
