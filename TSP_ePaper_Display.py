@@ -133,7 +133,7 @@ def query_google_calendar():
         now = datetime.datetime.utcnow().isoformat() + 'Z'
         today_end = datetime.datetime.combine(datetime.datetime.utcnow().date() + datetime.timedelta(1), datetime.datetime.min.time()).isoformat() + 'Z'
 
-        events = service.events().list(calendarId='primary', timeMin=now, #timeMax=today_end,
+        events = service.events().list(calendarId='primary', timeMin=now, timeMax=today_end,
                                             maxResults=10, singleEvents=True,
                                             orderBy='startTime', maxAttendees=1).execute()
     except BaseException as err:
