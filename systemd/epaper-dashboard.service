@@ -1,5 +1,6 @@
 [Unit]
 Description=Eink Dashboard
+After=multi-user.target
 Conflicts=motivational-poster.service
 
 [Service]
