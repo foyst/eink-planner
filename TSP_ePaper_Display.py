@@ -71,7 +71,11 @@ def main():
         try:
             while True:
                 query_todo_list()
-                calendar_result = query_google_calendar()
+                new_calendar_result = query_google_calendar()
+                if new_calendar_result != calendar_result:
+                    logger.info('-= Calendar Change Detected =-')
+                    do_screen_update = 1
+                    calendar_result = new_calendar_result
                 if (do_screen_update == 1):
                     do_screen_update = 0
                     refresh_screen(calendar_result)
@@ -133,16 +137,13 @@ def query_google_calendar():
         now = datetime.datetime.utcnow().isoformat() + 'Z'
         today_end = datetime.datetime.combine(datetime.datetime.utcnow().date() + datetime.timedelta(1), datetime.datetime.min.time()).isoformat() + 'Z'
 
-        events = service.events().list(calendarId='primary', timeMin=now, timeMax=today_end,
+        events = list(map(lambda event: { "summary": event['summary'], "start": event['start'] },
+            service.events().list(calendarId='primary', timeMin=now, timeMax=today_end,
                                             maxResults=10, singleEvents=True,
-                                            orderBy='startTime', maxAttendees=1).execute()
+                                            orderBy='startTime', maxAttendees=1).execute().get('items', [])))
     except BaseException as err:
         return ({}, err)
     
-    if events != calendar_result:
-        logger.info('-= Calendar Change Detected =-')
-        do_screen_update = 1
-        calendar_result = events
     return (events, '')
 
 def refresh_screen(calendar_result):
@@ -218,7 +219,7 @@ def refresh_screen(calendar_result):
         image_black.paste(error_icon, (10, line_start + line_location))
         draw_black.text((100, line_start + line_location), "Error retrieving calendar: \n" + str(calendar_error), font = font_tasks_list, fill = 0) # Print event summary
     else:
-        calendar_events = calendar_response.get('items', []) 
+        calendar_events = calendar_response
         if len(calendar_events) == 0:
             draw_black.text((70, line_start + line_location), "No more events today", font = font_tasks_list, fill = 0) # Print event summary
         else:
