@@ -16,7 +16,6 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from googleapiclient.errors import HttpError
 from dateutil import parser
 import logging
 
@@ -232,11 +231,15 @@ def refresh_screen(calendar_result):
                 draw_black.text((70, line_start + line_location + 6), summary, font = font_tasks_list, fill = 0) # Print event summary
                 line_location += 26
                 
-    line_location = 720
+    line_location = 735
     quotes_file = open("quotes.txt", "r")
     quotes = quotes_file.readlines()
     draw_black.text((10, 720), "“", font = font_quote_marks, fill = 0)
-    draw_black.text((50, 730), bytearray(random.choice(quotes), 'utf-8').decode('unicode_escape'), font = font_quote_text, fill = 0)
+    quote_text = bytearray(random.choice(quotes), 'utf-8').decode('unicode_escape').splitlines()
+    for quote_text_line in quote_text:
+        w, h = draw_black.textsize(quote_text_line, font=font_quote_text)
+        draw_black.text(((EPD_WIDTH-w)/2, line_location), quote_text_line, font = font_quote_text, fill = 0)
+        line_location += h
     draw_black.text((440, 760), "”", font = font_quote_marks, fill = 0)
 
     if Debug_Mode == 1:
