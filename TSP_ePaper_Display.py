@@ -3,13 +3,12 @@
 
 from logging.handlers import RotatingFileHandler
 import os
+import random
 from PIL import Image
 from PIL import ImageDraw
 from PIL import ImageFont
 import time
 from httplib2 import Credentials
-import requests
-import json
 import datetime
 from todoist_api_python.api import TodoistAPI
 import configparser
@@ -56,12 +55,13 @@ def main():
         global font_section_header; font_section_header = ImageFont.truetype('fonts/Roboto-Black.ttf', 20)
         global font_day_str; font_day_str = ImageFont.truetype('fonts/Roboto-Light.ttf', 25)
         global font_month_str; font_month_str = ImageFont.truetype('fonts/Roboto-Light.ttf', 25)
-        global font_weather_icons; font_weather_icons = ImageFont.truetype('fonts/meteocons-webfont.ttf', 45)
         global font_tasks_list_title; font_tasks_list_title = ImageFont.truetype('fonts/Roboto-Light.ttf', 30)
         global font_tasks_list; font_tasks_list = ImageFont.truetype('fonts/tahoma.ttf', 14)
         global font_tasks_due_date; font_tasks_due_date = ImageFont.truetype('fonts/tahoma.ttf', 11)
         global font_tasks_priority; font_tasks_priority = ImageFont.truetype('fonts/tahoma.ttf', 11)
         global font_update_moment; font_update_moment = ImageFont.truetype('fonts/tahoma.ttf', 14)
+        global font_quote_text; font_quote_text = ImageFont.truetype('fonts/tahoma.ttf', 18)
+        global font_quote_marks; font_quote_marks = ImageFont.truetype('fonts/IMFellDWPicaSC-Regular.ttf', 60)
 
         global font_calendar_time; font_calendar_time = ImageFont.truetype(font='fonts/tahoma.ttf', size=18)
 
@@ -209,7 +209,7 @@ def refresh_screen(calendar_result):
     
     draw_black.rectangle((0,400,EPD_WIDTH, 430), fill = 0) # Calender header rectangle
     draw_black.text((text_left_indent, 404), "Today's Calendar", font = font_section_header, fill = 255)
-    line_location = 400
+    line_location = 390
 
     calendar_response, calendar_error = calendar_result
 
@@ -231,7 +231,13 @@ def refresh_screen(calendar_result):
                 draw_black.text((10, line_start + line_location), start_time, font = font_calendar_time, fill = 0) # Print event start date
                 draw_black.text((70, line_start + line_location + 6), summary, font = font_tasks_list, fill = 0) # Print event summary
                 line_location += 26
-        
+                
+    line_location = 720
+    quotes_file = open("quotes.txt", "r")
+    quotes = quotes_file.readlines()
+    draw_black.text((10, 720), "“", font = font_quote_marks, fill = 0)
+    draw_black.text((50, 730), bytearray(random.choice(quotes), 'utf-8').decode('unicode_escape'), font = font_quote_text, fill = 0)
+    draw_black.text((440, 760), "”", font = font_quote_marks, fill = 0)
 
     if Debug_Mode == 1:
         logger.info('-= Viewing ePaper Frames... =-')
