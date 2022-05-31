@@ -56,7 +56,7 @@ def main():
         global font_month_str; font_month_str = ImageFont.truetype('fonts/Roboto-Light.ttf', 25)
         global font_tasks_list_title; font_tasks_list_title = ImageFont.truetype('fonts/Roboto-Light.ttf', 30)
         global font_tasks_list; font_tasks_list = ImageFont.truetype('fonts/tahoma.ttf', 14)
-        global font_tasks_due_date; font_tasks_due_date = ImageFont.truetype('fonts/tahoma.ttf', 11)
+        global font_tasks_due_date; font_tasks_due_date = ImageFont.truetype('fonts/tahoma.ttf', 13)
         global font_tasks_priority; font_tasks_priority = ImageFont.truetype('fonts/tahoma.ttf', 11)
         global font_update_moment; font_update_moment = ImageFont.truetype('fonts/tahoma.ttf', 14)
         global font_quote_text; font_quote_text = ImageFont.truetype('fonts/tahoma.ttf', 18)
@@ -95,6 +95,7 @@ def query_todo_list():
         try:
             api = TodoistAPI(TODOIST_TOKEN)
             new_todo_response = api.get_tasks()
+            new_todo_response.sort(key=lambda x: x.order)
             break
         except Exception as error:
             logger.error('-= ToDo API Error - Will Try Again =-')
@@ -184,26 +185,19 @@ def refresh_screen(calendar_result):
         current_date = int(datetime.date.today().strftime('%j')) + (int(time.strftime("%Y")) * 365)
         if my_task.due != None:
             due_date = int(datetime.date(int(str(my_task.due.date).split('-')[0]), int(str(my_task.due.date).split('-')[1]), int(str(my_task.due.date).split('-')[2])).strftime('%j')) + (int(str(my_task.due.date).split('-')[0]) * 365)
-        else:
-            due_date = -1
+            if (due_date < current_date and due_date > 0):
+                task_due_date = "OVERDUE"
+            else:
+                task_due_date = "DUE: " + str(my_task.due.string)
 
-        if (due_date < current_date and due_date > 0):
-            temp_draw = draw_red
-        else:
-            temp_draw = draw_black
-
-        temp_draw.text((20, line_start + line_location), item, font = font_tasks_list, fill = 0) # Print task strings
-        temp_draw.chord((3.5, line_start + 2 + line_location, 15.5, line_start + 14 + line_location), 0, 360, fill = 0) # Draw circle for task priority
-        temp_draw.text((7,line_start + 2 + line_location), priority, font = font_tasks_priority, fill = 255) # Print task priority string
-        temp_draw.line((3,line_start + 20 + line_location, 474, line_start + 20 + line_location), fill = 0) # Draw the line below the task
+        draw_black.text((20, line_start + line_location), item, font = font_tasks_list, fill = 0) # Print task strings
+        draw_black.chord((3.5, line_start + 2 + line_location, 15.5, line_start + 14 + line_location), 0, 360, fill = 0) # Draw circle for task priority
+        draw_black.text((7,line_start + 2 + line_location), priority, font = font_tasks_priority, fill = 255) # Print task priority string
+        draw_black.line((3,line_start + 20 + line_location, 474, line_start + 20 + line_location), fill = 0) # Draw the line below the task
         if my_task.due != None:
-            temp_draw.rectangle((595,line_start + 2 + line_location, 640, line_start + 18 + line_location), fill = 0) # Draw rectangle for the due date
-            temp_draw.text((602.5, line_start + 3.5 + line_location),str(my_task.due.string), font = font_tasks_due_date, fill = 255) # Print the due date of task
+            draw_black.rectangle((380,line_start + line_location, 474, line_start + 19 + line_location), fill = 0) # Draw rectangle for the due date
+            draw_black.text((383, line_start + 2 + line_location), task_due_date, font = font_tasks_due_date, fill = 255) # Print the due date of task
 
-        if (due_date < current_date and due_date > 0):
-            draw_red = temp_draw
-        else:
-            draw_black = temp_draw
         line_location += 26
     
     draw_black.rectangle((0,400,EPD_WIDTH, 430), fill = 0) # Calender header rectangle
@@ -215,12 +209,14 @@ def refresh_screen(calendar_result):
     if (calendar_error):
         logger.error(calendar_error)
         error_icon = Image.open('error_icon.png')
-        image_black.paste(error_icon, (10, line_start + line_location))
-        draw_black.text((100, line_start + line_location), "Error retrieving calendar: \n" + str(calendar_error), font = font_tasks_list, fill = 0) # Print event summary
+        image_black.paste(error_icon, (190, line_start + line_location))
+        draw_black.text((10, 530), "Error retrieving calendar: \n" + str(calendar_error), font = font_tasks_list, fill = 0) # Print event summary
     else:
         calendar_events = calendar_response
         if len(calendar_events) == 0:
-            draw_black.text((70, line_start + line_location), "No more events today", font = font_tasks_list, fill = 0) # Print event summary
+            empty_calendar_text = "No more events today"
+            w, h = draw_black.textsize(empty_calendar_text, font=font_quote_text)
+            draw_black.text(((EPD_WIDTH-w)/2, 450), empty_calendar_text, font = font_quote_text, fill = 0)
         else:
             for event in calendar_events:
                 start = event['start'].get('dateTime', event['start'].get('date'))
