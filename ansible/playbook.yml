@@ -61,8 +61,11 @@
     become: yes
     ansible.builtin.systemd:
       enabled: yes
-      name: motivational-poster.timer
+      name: "{{ item }}"
       daemon_reload: yes
+    loop:
+    - motivational-poster.service
+    - motivational-poster.timer
   
   - name: Add cron task to shutdown Pi at 5:05pm daily
     become: yes
@@ -71,4 +74,4 @@
       user: root
       minute: "05"
       hour: "17"
-      job: "shutdown now"
+      job: "shutdown -P now"
