@@ -1,3 +1,6 @@
 [Timer]
-Unit=motivational-poster
-OnCalendar=*-*-* 17:00:00
+Unit=motivational-poster.service
+OnCalendar=*-*-* 17:15:00
+
+[Install]
+WantedBy=timers.target

@@ -49,29 +49,22 @@
         src: ../systemd/
         dest: /etc/systemd/system
 
-  - name: Configure epaper-dashboard service
+  - name: Configure and start services
     become: yes
     ansible.builtin.systemd:
       enabled: yes
       state: restarted
-      name: epaper-dashboard
-      daemon_reload: yes
-
-  - name: Configure motivational-poster service
-    become: yes
-    ansible.builtin.systemd:
-      enabled: yes
       name: "{{ item }}"
       daemon_reload: yes
     loop:
-    - motivational-poster.service
+    - epaper-dashboard.service
     - motivational-poster.timer
   
-  - name: Add cron task to shutdown Pi at 5:05pm daily
+  - name: Add cron task to shutdown Pi at 5:20pm daily
     become: yes
     ansible.builtin.cron:
       name: "daily shutdown"
       user: root
-      minute: "05"
+      minute: "20"
       hour: "17"
-      job: "shutdown -P now"
+      job: "/usr/sbin/shutdown now >/tmp/shutdown_cron.out 2>&1"
