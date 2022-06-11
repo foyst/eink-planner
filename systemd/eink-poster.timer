@@ -1,5 +1,5 @@
 [Timer]
-Unit=motivational-poster.service
+Unit=eink-poster.service
 OnCalendar=*-*-* 17:15:00
 
 [Install]

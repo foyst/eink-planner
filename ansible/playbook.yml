@@ -1,5 +1,5 @@
 ---
-- name: Provision eInk Dashboard
+- name: Provision eInk Planner
   gather_facts: true
   hosts: all
   remote_user: ben
@@ -24,21 +24,22 @@
   - name: Copy project requirements.txt
     copy:
       src: ../requirements.txt
-      dst: /home/ben/epaper-dashboard/requirements.txt
+      dst: /home/ben/eink-planner/requirements.txt
 
   - name: Install project pip dependencies
     pip:
-      requirements: /home/ben/epaper-dashboard/requirements.txt
+      requirements: /home/ben/eink-planner/requirements.txt
 
   - name: Copy Python code to Pi
     synchronize:
       src: ../..
       dest: /home/ben
+      delete: yes
 
   - name: Copy conf.ini
     ansible.builtin.template:
       src: templates/conf.ini.j2
-      dest: /home/ben/epaper-dashboard/conf.ini
+      dest: /home/ben/eink-planner/conf.ini
       owner: ben
       group: ben
       mode: '0644'
@@ -57,8 +58,8 @@
       name: "{{ item }}"
       daemon_reload: yes
     loop:
-    - epaper-dashboard.service
-    - motivational-poster.timer
+    - eink-planner.service
+    - eink-poster.timer
   
   - name: Add cron task to shutdown Pi at 5:20pm daily
     become: yes

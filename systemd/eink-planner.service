@@ -1,11 +1,11 @@
 [Unit]
-Description=Eink Dashboard
+Description=Eink Planner
 After=multi-user.target
-Conflicts=motivational-poster.service
+Conflicts=eink-poster.service
 
 [Service]
 User=ben
-WorkingDirectory=/home/ben/epaper-dashboard
+WorkingDirectory=/home/ben/eink-planner
 ExecStart=python3 eink_planner.py
 
 [Install]
