@@ -128,7 +128,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+posters/**
+
 Black_Frame.png
 conf.ini
 token.json
 client_secret.json
+poster_debug.png
+ansible/inventory.ini
