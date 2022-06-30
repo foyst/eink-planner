@@ -3,7 +3,7 @@ Description=Motivational Poster
 
 [Service]
 User=ben
-WorkingDirectory=/home/ben/epaper-dashboard
+WorkingDirectory=/home/ben/eink-planner
 ExecStart=python3 eink_poster.py
 
 [Install]

@@ -21,10 +21,16 @@
     - RPi.GPIO
     - spidev
 
+  - name: Create eink-planner directory
+    file:
+      path: /home/ben/eink-planner
+      state: directory
+      mode: '0755'
+
   - name: Copy project requirements.txt
     copy:
       src: ../requirements.txt
-      dst: /home/ben/eink-planner/requirements.txt
+      dest: /home/ben/eink-planner/requirements.txt
 
   - name: Install project pip dependencies
     pip:
@@ -32,8 +38,8 @@
 
   - name: Copy Python code to Pi
     synchronize:
-      src: ../..
-      dest: /home/ben
+      src: ../../
+      dest: /home/ben/eink-planner
       delete: yes
 
   - name: Copy conf.ini
