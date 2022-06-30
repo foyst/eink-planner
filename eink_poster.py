@@ -25,7 +25,7 @@ def main():
 
     print('-= Updating ePaper... =-')
 
-    posters = listdir(os.path.join(os.getcwd(), "posters"))
+    posters = [poster for poster in listdir(os.path.join(os.getcwd(), "posters")) if not (poster == "README.md")]
 
     orig_image = Image.open(os.path.join(os.getcwd(), "posters", random.choice(posters)))
 
