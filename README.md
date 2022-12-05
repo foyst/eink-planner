@@ -26,3 +26,6 @@ Open Google auth link printed to console output and sign in. This will generate 
 If you're making changes to the Python code and want to quickly sync changes and rerun the service, you can use the following:
 
 `ansible-playbook -vvv --start-at-task="Copy Python code to Pi" -i "raspberrypi.local," ansible/playbook.yml -e "debug_mode=0 todoist_api_token=<your token here>`
+
+## Resources
+[How to add home monitor OAuth Scopes](https://community.smartthings.com/t/permissions-in-defining-smartapp/213865/2)
