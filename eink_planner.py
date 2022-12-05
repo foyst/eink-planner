@@ -12,6 +12,7 @@ import logging
 from google_calendar import query_google_calendar, render_calendar
 from quotes import render_quotes
 from todoist import TodoistClient, render_todo_list
+from todoist_daily import TodoistDailyClient, render_daily_habits
 
 EPD_WIDTH       = 480
 EPD_HEIGHT      = 800
@@ -38,10 +39,12 @@ def main():
             logger.info('-= Debug Mode =-')
         global todo_response; todo_response = ''
         global calendar_result; calendar_result = ''
+        global daily_response; daily_response = ''
         global cal_width; cal_width = 240
         global line_start; line_start = 48
 
         todoist_client = TodoistClient(config['Todoist']['APIToken'])
+        todoist_daily_client = TodoistDailyClient(config['Todoist']['APIToken'])
 
         # All fonts used in frames
         global font_cal; font_cal = ImageFont.truetype('fonts/FreeMonoBold.ttf', 16)
@@ -58,6 +61,7 @@ def main():
             while True:
                 new_todo_response = todoist_client.query_todo_list()
                 new_calendar_result = query_google_calendar()
+                new_daily_response = todoist_daily_client.query_daily_habits()
                 if ((new_todo_response) != (todo_response)):
                     logger.info('-= Task List Change Detected =-')
                     do_screen_update = 1
@@ -66,10 +70,14 @@ def main():
                     logger.info('-= Calendar Change Detected =-')
                     do_screen_update = 1
                     calendar_result = new_calendar_result
+                if new_daily_response != daily_response:
+                    logger.info('-= Daily Habits Change Detected =-')
+                    do_screen_update = 1
+                    daily_response = new_daily_response
                 
                 if (do_screen_update == 1):
                     do_screen_update = 0
-                    refresh_screen(calendar_result, todo_response)
+                    refresh_screen(calendar_result, todo_response, daily_response)
                 else:
                     logger.info('-= No changes detected, not refreshing screen =-')
                 time.sleep(todo_wait)
@@ -78,7 +86,7 @@ def main():
             if Debug_Mode == 0:
                 epd.sleep()
 
-def refresh_screen(calendar_result, todo_response):
+def refresh_screen(calendar_result, todo_response, daily_response):
     global epd
     global Debug_Mode
 
@@ -102,15 +110,27 @@ def refresh_screen(calendar_result, todo_response):
     update_moment = "Last updated: " + time.strftime("%I") + ':' + time.strftime("%M") + ' ' + time.strftime("%p")
     draw_black.text((325,5),update_moment,font = font_update_moment, fill = 255)
 
-    draw_black.rectangle((0,70,EPD_WIDTH, 100), fill = 0) # Todo list header rectangle
-    draw_black.text((text_left_indent, 74), "Prioritised Tasks", font = font_section_header, fill = 255)
+    section_y_position = 70
 
-    render_todo_list(todo_response, draw_black)
+    draw_black.rectangle((0,section_y_position,EPD_WIDTH, section_y_position + 30), fill = 0) # Todo list header rectangle
+    draw_black.text((text_left_indent, section_y_position + 4), "Daily Habits", font = font_section_header, fill = 255)
 
-    draw_black.rectangle((0,400,EPD_WIDTH, 430), fill = 0) # Calender header rectangle
-    draw_black.text((text_left_indent, 404), "Today's Calendar", font = font_section_header, fill = 255)
+    # Daily Habits
+    section_y_position = render_daily_habits(daily_response, draw_black, section_y_position + 40)  
 
-    render_calendar(calendar_result, draw_black, image_black)
+    # section_y_position = 200
+
+    draw_black.rectangle((0,section_y_position,EPD_WIDTH, section_y_position + 30), fill = 0) # Todo list header rectangle
+    draw_black.text((text_left_indent, section_y_position + 4), "Prioritised Tasks", font = font_section_header, fill = 255)
+
+    render_todo_list(todo_response, draw_black, section_y_position - 10)
+
+    section_y_position = section_y_position + 300
+
+    draw_black.rectangle((0,section_y_position,EPD_WIDTH, section_y_position + 30), fill = 0) # Calender header rectangle
+    draw_black.text((text_left_indent, section_y_position + 4), "Today's Calendar", font = font_section_header, fill = 255)
+
+    render_calendar(calendar_result, draw_black, image_black, section_y_position)
                 
     render_quotes(draw_black)
 
@@ -118,6 +138,7 @@ def refresh_screen(calendar_result, todo_response):
         logger.info('-= Viewing ePaper Frames... =-')
         image_black.save("Black_Frame.png")
         logger.info('-= ...Done =-')
+        exit()
     else:
         logger.info('-= Updating ePaper... =-')
         epd.init()

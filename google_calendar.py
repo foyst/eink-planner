@@ -60,10 +60,9 @@ def query_google_calendar():
     return (events, '')
 
 
-def render_calendar(calendar_result, draw_black, image_black):
+def render_calendar(calendar_result, draw_black, image_black, line_location):
     calendar_response, calendar_error = calendar_result
 
-    line_location = 390
     if (calendar_error):
         logger.error(calendar_error)
         error_icon = Image.open('error_icon.png')
@@ -74,7 +73,7 @@ def render_calendar(calendar_result, draw_black, image_black):
         if len(calendar_events) == 0:
             empty_calendar_text = "No more events today"
             w, h = draw_black.textsize(empty_calendar_text, font=font_quote_text)
-            draw_black.text(((EPD_WIDTH-w)/2, 450), empty_calendar_text, font = font_quote_text, fill = 0)
+            draw_black.text(((EPD_WIDTH-w)/2, line_location + 50), empty_calendar_text, font = font_quote_text, fill = 0)
         else:
             for event in calendar_events:
                 start = event['start'].get('dateTime', event['start'].get('date'))

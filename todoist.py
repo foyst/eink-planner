@@ -25,7 +25,7 @@ class TodoistClient:
         while True:
             try:
                 api = TodoistAPI(self.api_token)
-                new_todo_response = api.get_tasks()
+                new_todo_response = api.get_tasks(filter = "#ToDo List")
                 new_todo_response.sort(key=lambda x: x.order)
                 return new_todo_response
             except Exception as error:
@@ -34,8 +34,7 @@ class TodoistClient:
                 time.sleep(refresh_time)
 
 
-def render_todo_list(todo_response, draw_black):
-    line_location = 70
+def render_todo_list(todo_response, draw_black, line_location):
     for my_task in todo_response[0:10]:
         item = str(my_task.content)
         priority = str(my_task.priority)
