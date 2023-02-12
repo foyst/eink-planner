@@ -27,7 +27,7 @@ class TodoistDailyClient:
         while True:
             try:
                 api = TodoistAPI(self.api_token)
-                new_todo_response = api.get_tasks(filter = "#Daily Habits & Overdue")
+                new_todo_response = api.get_tasks(filter = "#Daily Habits & (overdue | today)")
                 new_todo_response.sort(key=lambda x: x.order)
                 return new_todo_response
             except Exception as error:
