@@ -78,7 +78,7 @@ def main():
                 if (do_screen_update == 1):
                     do_screen_update = 0
                     refresh_screen(calendar_result, todo_response, daily_response)
-                else:
+                else:           
                     logger.info('-= No changes detected, not refreshing screen =-')
                 time.sleep(todo_wait)
         except KeyboardInterrupt:
